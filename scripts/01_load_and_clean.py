@@ -1,37 +1,39 @@
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder  # ✅ make sure sklearn is installed
 
-# 1. Load raw data
+# Load the raw dataset
 df = pd.read_csv(
-    r"C:\Users\racharya\OneDrive - University of Edinburgh\credit-risk-modelling\data\credit_data.csv",  # Ensure this is your renamed 'german.data'
+    r"C:\Users\racharya\OneDrive - University of Edinburgh\credit-risk-modelling\data\credit_data.csv",
     header=None,
-    sep='\s+'
+    sep=r'\s+'  # ✅ fixed raw string
 )
 
-# 2. Assign column names (based on german.doc)
+
+# Add column names based on the dataset documentation
 df.columns = [
     "Status", "Duration", "CreditHistory", "Purpose", "CreditAmount", "Savings", "EmploymentSince",
     "InstallmentRate", "PersonalStatusSex", "OtherDebtors", "ResidenceSince", "Property", "Age",
     "OtherInstallmentPlans", "Housing", "NumberCredits", "Job", "PeopleLiable", "Telephone", "ForeignWorker", "default"
 ]
 
-# 3. Convert target to binary: 1 = good (no default), 2 = bad (default)
+# Convert target variable: 1 = Good → 0, 2 = Bad → 1
 df["default"] = df["default"].map({1: 0, 2: 1})
 
-# 4. Label encode categorical features
+# Encode categorical columns
 label_enc = LabelEncoder()
-
-# Categorical columns (excluding target and already numerical)
 cat_cols = df.select_dtypes(include='object').columns.tolist()
 
 for col in cat_cols:
     df[col] = label_enc.fit_transform(df[col])
 
-# 5. Final check
+# Preview
 print("✅ Cleaned Data Preview:")
 print(df.head())
 print("\n📊 Data Types:\n", df.dtypes)
 
-# 6. Save cleaned dataset for later use (EDA, modelling, etc.)
-df.to_csv(r"C:\Users\racharya\OneDrive - University of Edinburgh\credit-risk-modelling\data\credit_data_cleaned.csv", index=False)
+# Save cleaned dataset
+df.to_csv(
+    r"C:\Users\racharya\OneDrive - University of Edinburgh\credit-risk-modelling\data\credit_data_cleaned.csv",
+    index=False
+)
 print("\n📁 Cleaned dataset saved as 'credit_data_cleaned.csv'")

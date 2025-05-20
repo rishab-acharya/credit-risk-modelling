@@ -3,8 +3,9 @@ from statsmodels.formula.api import glm
 from statsmodels.genmod.families import Binomial
 import statsmodels.api as sm
 import numpy as np
-import patsy
 import os
+import pickle
+from sklearn.metrics import roc_auc_score, confusion_matrix
 
 # Load cleaned dataset
 df = pd.read_csv("data/credit_data_cleaned.csv")
@@ -18,9 +19,9 @@ def stepwise_selection(data, target, candidate_features):
         changed = False
         # forward step
         excluded = list(set(candidate_features) - set(included))
-        new_pvals = pd.Series(index=excluded)
+        new_pvals = pd.Series(index=excluded, dtype=float)
         for new_column in excluded:
-            formula = "{} ~ {}".format(target, ' + '.join(included + [new_column]))
+            formula = f"{target} ~ {' + '.join(included + [new_column])}"
             model = glm(formula=formula, data=data, family=Binomial()).fit()
             new_pvals[new_column] = model.aic
         
@@ -32,10 +33,10 @@ def stepwise_selection(data, target, candidate_features):
         
         # backward step
         if len(included) > 1:
-            aic_with = pd.Series(index=included)
+            aic_with = pd.Series(index=included, dtype=float)
             for col in included:
                 test_features = [f for f in included if f != col]
-                formula = "{} ~ {}".format(target, ' + '.join(test_features))
+                formula = f"{target} ~ {' + '.join(test_features)}"
                 model = glm(formula=formula, data=data, family=Binomial()).fit()
                 aic_with[col] = model.aic
             worst_feature = aic_with.idxmin()
@@ -48,15 +49,16 @@ def stepwise_selection(data, target, candidate_features):
 
     return included
 
+# Stepwise feature selection
 selected_features = stepwise_selection(df, target, features)
 print("✅ Selected features via stepwise AIC:", selected_features)
 
+# Final model
 formula = f"{target} ~ {' + '.join(selected_features)}"
 final_model = glm(formula=formula, data=df, family=Binomial()).fit()
 print(final_model.summary())
 
-from sklearn.metrics import roc_auc_score, confusion_matrix
-
+# Evaluation
 df['pred_prob'] = final_model.predict(df[selected_features])
 df['pred_label'] = (df['pred_prob'] > 0.5).astype(int)
 
@@ -65,3 +67,17 @@ cm = confusion_matrix(df[target], df['pred_label'])
 
 print("\n🔍 AUC Score:", round(auc, 4))
 print("\n📊 Confusion Matrix:\n", cm)
+
+# Rebuild with matrix-based API for portability
+X = sm.add_constant(df[selected_features])
+y = df['default']
+glm_matrix_model = sm.GLM(y, X, family=sm.families.Binomial()).fit()
+
+# Save this retrained GLM model
+with open("outputs/glm_stepwise.pkl", "wb") as f:
+    pickle.dump(glm_matrix_model, f)
+
+# Also save selected features for future use
+with open("outputs/glm_selected_features.pkl", "wb") as f:
+    pickle.dump(selected_features, f)
+

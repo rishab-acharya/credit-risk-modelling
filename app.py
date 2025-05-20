@@ -1,62 +1,50 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import xgboost as xgb
-import sqlite3
-from sklearn.preprocessing import StandardScaler
+import statsmodels.api as sm
+import pickle
 
-# Load data from SQL to get column names
-conn = sqlite3.connect(r"data/credit.db")
-df = pd.read_sql("SELECT * FROM credit_data;", conn)
-conn.close()
+# Load model and feature list
+with open("outputs/glm_stepwise.pkl", "rb") as f:
+    glm_model = pickle.load(f)
 
-X = df.drop("default", axis=1)
-y = df["default"]
+with open("outputs/glm_selected_features.pkl", "rb") as f:
+    selected_features = pickle.load(f)
 
-# Train scaler and model
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+# App Title
+st.title("📊 Credit Risk Score & Risk Band Prediction")
+st.markdown("This tool uses a stepwise-selected Generalized Linear Model (GLM) to predict default risk and assign a risk segment.")
 
-dtrain = xgb.DMatrix(X_scaled, label=y)
-params = {
-    "objective": "binary:logistic",
-    "eval_metric": "auc",
-    "max_depth": 4,
-    "eta": 0.1
-}
-model = xgb.train(params, dtrain, num_boost_round=100)
+# Sidebar Input Form
+st.sidebar.header("📥 Input Customer Details")
+input_data = {}
 
-# Streamlit UI
-st.set_page_config(page_title="Credit Risk Predictor", layout="centered")
-st.title("💳 Credit Risk Prediction App")
-st.markdown("Enter customer information to predict default risk, risk band, and interest rate.")
-
-# Build input form dynamically
-user_input = {}
-for col in X.columns:
-    if df[col].dtype == "int64":
-        val = st.number_input(f"{col}", value=int(df[col].mean()), step=1)
+for feature in selected_features:
+    if feature == "CreditAmount":
+        input_data[feature] = st.sidebar.slider(feature, 250, 20000, 3000)
+    elif feature == "Duration":
+        input_data[feature] = st.sidebar.slider(feature, 4, 72, 24)
+    elif feature == "Age":
+        input_data[feature] = st.sidebar.slider(feature, 18, 75, 35)
     else:
-        val = st.selectbox(f"{col}", sorted(df[col].unique()))
-    user_input[col] = val
+        input_data[feature] = st.sidebar.number_input(feature, min_value=0, max_value=10, step=1, value=1)
 
-# Predict button
-if st.button("Predict Risk"):
-    input_df = pd.DataFrame([user_input])
-    input_scaled = scaler.transform(input_df)
-    dinput = xgb.DMatrix(input_scaled)
-    prob = model.predict(dinput)[0]
+# Predict Button
+if st.sidebar.button("🔍 Predict Risk"):
+    user_df = pd.DataFrame([input_data])
+    user_df = sm.add_constant(user_df, has_constant='add')
 
-    # Risk band + rate
-    if prob < 0.33:
-        risk = "Low"
-        rate = 5.0
-    elif prob < 0.66:
-        risk = "Medium"
-        rate = 10.0
-    else:
-        risk = "High"
-        rate = 20.0
+    # Predict default probability
+    pred_prob = glm_model.predict(user_df)[0]
+    # Load saved bin edges
+    bins = np.load("outputs/glm_risk_bins.npy")
+    risk_band = pd.cut([pred_prob], bins=bins, labels=["Low", "Medium", "High"], include_lowest=True)[0]
 
-    st.success(f"🧠 Predicted default probability: **{prob:.2f}**")
-    st.info(f"💡 Risk Band: **{risk}**, Suggested Interest Rate: **{rate:.1f}%**")
+
+    st.success("✅ Prediction Complete!")
+    st.metric("💡 Default Probability", f"{pred_prob:.2%}")
+    st.metric("📉 Risk Segment", risk_band)
+
+# Footer
+st.markdown("---")
+st.caption("Built with 💻 by Rishab Acharya · GLM Stepwise Model · 2025")
