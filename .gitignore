@@ -1,0 +1,19 @@
+# Bytecode
+__pycache__/
+*.py[cod]
+
+# Environment
+venv/
+.env
+
+# Data
+*.db
+*.csv
+*.png
+
+# Jupyter
+.ipynb_checkpoints
+
+# OS
+.DS_Store
+Thumbs.db
