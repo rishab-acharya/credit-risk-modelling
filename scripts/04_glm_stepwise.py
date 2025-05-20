@@ -58,7 +58,7 @@ formula = f"{target} ~ {' + '.join(selected_features)}"
 final_model = glm(formula=formula, data=df, family=Binomial()).fit()
 print(final_model.summary())
 
-# Evaluation
+
 df['pred_prob'] = final_model.predict(df[selected_features])
 df['pred_label'] = (df['pred_prob'] > 0.5).astype(int)
 
@@ -68,16 +68,16 @@ cm = confusion_matrix(df[target], df['pred_label'])
 print("\n🔍 AUC Score:", round(auc, 4))
 print("\n📊 Confusion Matrix:\n", cm)
 
-# Rebuild with matrix-based API for portability
+
 X = sm.add_constant(df[selected_features])
 y = df['default']
 glm_matrix_model = sm.GLM(y, X, family=sm.families.Binomial()).fit()
 
-# Save this retrained GLM model
+
 with open("outputs/glm_stepwise.pkl", "wb") as f:
     pickle.dump(glm_matrix_model, f)
 
-# Also save selected features for future use
+
 with open("outputs/glm_selected_features.pkl", "wb") as f:
     pickle.dump(selected_features, f)
 

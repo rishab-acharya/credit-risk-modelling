@@ -1,15 +1,15 @@
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder  # ✅ make sure sklearn is installed
+from sklearn.preprocessing import LabelEncoder  
 
 # Load the raw dataset
 df = pd.read_csv(
     r"C:\Users\racharya\OneDrive - University of Edinburgh\credit-risk-modelling\data\credit_data.csv",
     header=None,
-    sep=r'\s+'  # ✅ fixed raw string
+    sep=r'\s+'  
 )
 
 
-# Add column names based on the dataset documentation
+
 df.columns = [
     "Status", "Duration", "CreditHistory", "Purpose", "CreditAmount", "Savings", "EmploymentSince",
     "InstallmentRate", "PersonalStatusSex", "OtherDebtors", "ResidenceSince", "Property", "Age",
@@ -19,14 +19,14 @@ df.columns = [
 # Convert target variable: 1 = Good → 0, 2 = Bad → 1
 df["default"] = df["default"].map({1: 0, 2: 1})
 
-# Encode categorical columns
+
 label_enc = LabelEncoder()
 cat_cols = df.select_dtypes(include='object').columns.tolist()
 
 for col in cat_cols:
     df[col] = label_enc.fit_transform(df[col])
 
-# Preview
+
 print("✅ Cleaned Data Preview:")
 print(df.head())
 print("\n📊 Data Types:\n", df.dtypes)
