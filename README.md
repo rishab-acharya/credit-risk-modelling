@@ -18,23 +18,6 @@ It simulates how banks or fintech companies assess default risk, assign customer
 
 ---
 
-## 🗂 Project Structure
-credit-risk-modelling/
-├── data/ # Clean data, database, output segments
-│ ├── credit.db
-│ ├── credit_data.csv
-│ ├── risk_segments.csv
-│ └── risk_distribution.png
-├── scripts/ # Model training, cleaning, and SQL
-│ ├── 01_load_and_clean.py
-│ ├── 02_sql_setup.py
-│ ├── 03_logistic_model.py
-│ ├── 04_xgboost_model.py
-│ └── 05_risk_segmentation.py
-├── app.py # Streamlit frontend app
-├── requirements.txt
-├── .gitignore
-└── README.md
 
 
 ---
